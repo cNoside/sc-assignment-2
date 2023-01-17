@@ -1,2 +1,2 @@
-var secret = "RPU<Yzdf.)KqD}xs6+/?^K`fs9mPWsH[()ta(X#$";
+var secret = process.env.JWT_SECRET;
 module.exports.key = secret;

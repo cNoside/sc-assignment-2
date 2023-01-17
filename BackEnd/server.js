@@ -1,3 +1,4 @@
+require("dotenv").config();
 var express = require("express");
 var serveStatic = require("serve-static");
 var app = require("./controller/app.js");
