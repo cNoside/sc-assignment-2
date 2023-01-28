@@ -6,6 +6,7 @@
 <script src="https://kit.fontawesome.com/2a646d8a1f.js" crossorigin="anonymous"></script>
 <!------ Include the above in your HEAD tag ---------->
 
+
 <link rel="stylesheet" href="css/listings.css">
 
 <script>
@@ -47,6 +48,7 @@
                             if (data.success) {
                                 var fk_product_id = data.id;
                                 $.ajax({
+                                    headers: { "authorization": "Bearer " + token },
                                     url: "http://localhost:8081/images/" + `${fk_product_id}` + "/",
                                     type: "POST",
                                     data: formData,

@@ -10,6 +10,8 @@ var verifyToken = require("../auth/verifyToken.js");
 
 var path = require("path");
 var multer = require("multer");
+var fileType = require("file-type");
+var fs = require("fs/promises");
 
 var cors = require("cors"); //Just use(security feature)
 
@@ -355,40 +357,91 @@ app.get("/likes/:listingid/", function (req, res) {
 
 //Images API
 
-let storage = multer.diskStorage({
-  destination: function (req, file, callback) {
-    callback(null, __dirname + "/../public");
-  },
-  filename: function (req, file, cb) {
-    req.filename =
-      file.originalname.replace(path.extname(file.originalname), "") +
-      "-" +
-      Date.now() +
-      path.extname(file.originalname);
-    cb(null, req.filename);
-  }
-});
-
-let upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }
-}); //limits check if he file size is equal to or below 5mb
+let memory = multer({ storage: multer.memoryStorage() });
 
 app.post(
   "/images/:fk_product_id/",
-  upload.single("myfile"),
-  function (req, res) {
-    var fk_product_id = req.params.fk_product_id;
-    var name = req.filename;
-    images.uploadImage(name, fk_product_id, function (err, result) {
-      if (err) {
-        res.status(500);
-        res.json({ success: false });
-      } else {
-        res.status(201);
-        res.json({ success: true });
-      }
-    });
+  verifyToken,
+  memory.single("myfile"),
+  async function (req, res, next) {
+    const filenameWhitelist = /[^a-zA-Z0-9\s-_.]/g; // allowed characters
+    const extensionWhitelist = /jpeg|jpg|png|gif/; // allowed extensions
+    const limits = { fileSize: 5 * 1024 * 1024 }; // 5mb limit
+    const destination = __dirname + "/../public";
+    const filename =
+      req.file.originalname
+        .replace(filenameWhitelist, "")
+        .replace(path.extname(req.file.originalname), "") +
+      "-" +
+      Date.now() +
+      path.extname(req.file.originalname);
+
+    const typeFromFilename = path
+      .extname(req.file.originalname)
+      .toLowerCase()
+      .slice(1);
+    const typeFromContent = await fileType.fromBuffer(req.file.buffer);
+
+    if (
+      !extensionWhitelist.test(typeFromFilename) ||
+      !extensionWhitelist.test(typeFromContent?.ext)
+    ) {
+      res.status(400).json({ success: false, message: "Invalid file type" });
+      return;
+    } else if (req.file.size > limits.fileSize) {
+      res.status(400).json({ success: false, message: "File too large" });
+      return;
+    }
+
+    try {
+      await fs.writeFile(destination + "/" + filename, req.file.buffer);
+      images.getUserTotalSize(req.id, function (err, result) {
+        if (err) {
+          res.status(500);
+          res.json({ success: false });
+        } else {
+          const limitMb = 10;
+          const isAuthorised =
+            result[0].total + req.file.size <= limitMb * 1024 * 1024;
+          if (!isAuthorised) {
+            res.status(403);
+            res.json({
+              success: false,
+              message: `You have ${(
+                limitMb -
+                result[0].total / 1024 / 1024
+              ).toFixed(2)}MB of storage left. The file you uploaded is ${(
+                req.file.size /
+                1024 /
+                1024
+              ).toFixed(2)}MB`
+            });
+          } else {
+            var fk_product_id = req.params.fk_product_id;
+            var name = filename;
+            images.uploadImage(
+              name,
+              fk_product_id,
+              req.id,
+              req.file.size,
+              function (err, result) {
+                if (err) {
+                  res.status(500);
+                  res.json({ success: false });
+                } else {
+                  res.status(201);
+                  res.json({ success: true });
+                }
+              }
+            );
+          }
+        }
+      });
+    } catch (err) {
+      console.log(err);
+      res.status(500);
+      res.json({ success: false, message: "Internal server error" });
+    }
   }
 );
 module.exports = app;
