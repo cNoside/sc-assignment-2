@@ -12,6 +12,7 @@ var path = require("path");
 var multer = require("multer");
 var fileType = require("file-type");
 var fs = require("fs/promises");
+var fsSync = require("fs");
 var config = require("../config.js");
 
 var cors = require("cors"); //Just use(security feature)
@@ -33,7 +34,7 @@ app.post("/user/login", function (req, res) {
   var password = req.body.password;
 
   if (!email || !password) {
-    res.status(401)
+    res.status(401);
     res.send("Please enter email and password");
   }
 
@@ -87,6 +88,10 @@ app.post("/user/refresh", function (req, res) {
   }
 });
 
+const commonPasswords = fsSync
+  .readFileSync("bin/common-passwords.txt", "utf8")
+  .split("\n");
+
 app.post("/user", function (req, res) {
   //Create User
   var username = req.body.username;
@@ -94,6 +99,28 @@ app.post("/user", function (req, res) {
   var password = req.body.password;
   var profile_pic_url = req.body.profile_pic_url;
   var role = req.body.role;
+
+  const MIN_LENGTH = 10;
+  const PASSWORD_REGEX =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{10,}$/;
+
+  if (password.length < MIN_LENGTH) {
+    res.status(400);
+    res.send("Password must be at least 10 characters long");
+    return;
+  }
+  if (!PASSWORD_REGEX.test(password)) {
+    res.status(400);
+    res.send(
+      "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
+    );
+    return;
+  }
+  if (commonPasswords.includes(password)) {
+    res.status(400);
+    res.send("Password is too common");
+    return;
+  }
 
   user.addUser(
     username,
