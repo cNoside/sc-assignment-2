@@ -12,8 +12,11 @@ var path = require("path");
 var multer = require("multer");
 var fileType = require("file-type");
 var fs = require("fs/promises");
+var config = require("../config.js");
 
 var cors = require("cors"); //Just use(security feature)
+var cookieParser = require("cookie-parser");
+var jwt = require("jsonwebtoken");
 
 var urlencodedParser = bodyParser.urlencoded({ extended: false });
 
@@ -21,6 +24,7 @@ app.options("*", cors()); //Just use
 app.use(cors()); //Just use
 app.use(bodyParser.json());
 app.use(urlencodedParser);
+app.use(cookieParser());
 
 //User APIs
 app.post("/user/login", function (req, res) {
@@ -28,7 +32,12 @@ app.post("/user/login", function (req, res) {
   var email = req.body.email;
   var password = req.body.password;
 
-  user.loginUser(email, password, function (err, token, result) {
+  if (!email || !password) {
+    res.status(401)
+    res.send("Please enter email and password");
+  }
+
+  user.loginUser(email, password, function (err, [token, refresh], result) {
     if (err) {
       res.status(500);
       res.send(err.statusCode);
@@ -36,14 +45,46 @@ app.post("/user/login", function (req, res) {
       res.statusCode = 201;
       res.setHeader("Content-Type", "application/json");
       delete result[0]["password"]; //clear the password in json data, do not send back to client
+      res.cookie("refresh", refresh, {
+        httpOnly: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        sameSite: "none"
+      });
       res.json({
         success: true,
         UserData: JSON.stringify(result),
         token: token,
+        refresh: refresh,
         status: "You are successfully logged in!"
       });
     }
   });
+});
+
+app.post("/user/refresh", function (req, res) {
+  if (req.cookies.refresh) {
+    var refresh = req.cookies.refresh;
+    var token = "";
+
+    jwt.verify(refresh, config.key, function (err, decoded) {
+      if (err) {
+        res.status(401).send("Unauthorized");
+      } else {
+        user.findUser(decoded.id, function (err, result) {
+          if (err) {
+            res.status(401).send("Unauthorized");
+          } else {
+            token = jwt.sign({ id: result[0].id }, config.key, {
+              expiresIn: 15 * 60 // expires in 15 mins
+            });
+            res.status(200).json({ token: token });
+          }
+        });
+      }
+    });
+  } else {
+    res.status(401).send("Unauthorized");
+  }
 });
 
 app.post("/user", function (req, res) {

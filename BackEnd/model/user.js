@@ -4,6 +4,36 @@ var jwt = require("jsonwebtoken");
 var argon2 = require("argon2");
 
 var userDB = {
+  findUser: function (id, callback) {
+    var conn = db.getConnection();
+
+    conn.connect(function (err) {
+      if (err) {
+        console.log(err);
+        return callback(err, null);
+      } else {
+        console.log("Connected!");
+
+        var sql = "select * from users where id = ?";
+        conn.query(sql, [id], function (err, result) {
+          conn.end();
+
+          if (err) {
+            console.log("Err: " + err);
+            return callback(err, null);
+          } else if (result.length == 1) {
+            return callback(null, result);
+          } else {
+            console.log("User not found");
+            var err2 = new Error("User not found.");
+            err2.statusCode = 404;
+            console.log(err2);
+            return callback(err2, null);
+          }
+        });
+      }
+    });
+  },
   loginUser: function (email, password, callback) {
     var conn = db.getConnection();
 
@@ -24,19 +54,23 @@ var userDB = {
           } else if (result.length == 1) {
             argon2.verify(result[0].password, password).then((isMatched) => {
               var token = "";
+              var refresh = "";
 
               if (isMatched) {
                 token = jwt.sign({ id: result[0].id }, config.key, {
-                  expiresIn: 86400 //expires in 24 hrs
+                  expiresIn: 15 * 60 // expires in 15 mins
+                });
+                refresh = jwt.sign({ id: result[0].id }, config.key, {
+                  expiresIn: 7 * 24 * 60 * 60 // expires in 1 week
                 });
                 console.log("@@token " + token);
-                return callback(null, token, result);
+                return callback(null, [token, refresh], result);
               } else {
                 console.log("email/password does not match");
                 var err2 = new Error("Email/Password does not match.");
                 err2.statusCode = 404;
                 console.log(err2);
-                return callback(err2, null, null);
+                return callback(err2, [], null);
               }
             });
           } else {
@@ -44,7 +78,7 @@ var userDB = {
             var err2 = new Error("Email/Password does not match.");
             err2.statusCode = 404;
             console.log(err2);
-            return callback(err2, null, null);
+            return callback(err2, [], null);
           }
         });
       }

@@ -22,48 +22,70 @@
         } else {
             var search = 0;
         }
-        $.ajax({
-            headers: { "authorization": "Bearer " + token },
-            url: "http://localhost:8081/user/listing/",//supply the api url
-            dataType: "json",
-            type: "GET",///supply the method
-            contentType: "application/json",//standard
-            success: function (data, textStatus, xhr) {//retrieve some data back from server
-                if (data.success) {
-                    var postsHtml = "";
 
-                    var NumberOfListings = data.result.length;
+        // var tokenExpiry = JSON.parse(atob(token.split('.')[1])).exp;
+        // var currentTime = Math.floor(Date.now() / 1000);
+        // if (currentTime > tokenExpiry) {
+        //   $.ajax({
+        //     url: "http://localhost:8081/user/refresh",
+        //     type: "POST",
+        //     contentType: "application/json",
+        //     dataType: "json",
+        //     success:function(data,textStatus,xhr){//retrieve some data back from server
+        //       if(data != null){
+        //         var userData = data.UserData;
+        //         var token = data.token;
+        //         localStorage.setItem('token',token);//store at local storage like cache
+        //         localStorage.setItem('userData',userData)
+        //         window.location.assign("http://localhost:3001/listings.html")//redirect the user to the next webpage
+        //       } else{
+        //         window.alert("Wrong Credentials")
+        //       }
+        //     }
+        //   })
+        // } else {
+          $.ajax({
+              headers: { "authorization": "Bearer " + token },
+              url: "http://localhost:8081/user/listing/",//supply the api url
+              dataType: "json",
+              type: "GET",///supply the method
+              contentType: "application/json",//standard
+              success: function (data, textStatus, xhr) {//retrieve some data back from server
+                  if (data.success) {
+                      var postsHtml = "";
 
-                    for (i = 0; i < NumberOfListings; i++) {
-                        postsHtml += ` <div class="col-12 col-md-6 col-lg-4">
-                <div class="card">
-                    <img class="card-img-top" width = 338px height = 225.325px src="http://localhost:8081/${data.result[i].name}" alt="Card image cap">
-                    <div class="card-body">
-                        <h4 class="card-title">${data.result[i].title}</h4>
-                        <p class="card-text">${data.result[i].category}</p>
-                        <div class="row">
-                            <div class="col">
-                                <p class="btn btn-danger btn-block">$${data.result[i].price}</p>
-                            </div>
-                            <div class="col">
-                                <a href = "http://localhost:3001/viewlisting.html?listingid=${data.result[i].id}" class="btn btn-success btn-block">View</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>`;
-                    }
-                    $('#listings').html(postsHtml);
-                   
-                } else {
-                    window.alert("Error in retrieving")
-                }
-            }, error(xhr, textStatus, err) {
-                console.log(err)
-                window.alert("Error in retrieving")
-            }
+                      var NumberOfListings = data.result.length;
 
-        });
+                      for (i = 0; i < NumberOfListings; i++) {
+                          postsHtml += ` <div class="col-12 col-md-6 col-lg-4">
+                  <div class="card">
+                      <img class="card-img-top" width = 338px height = 225.325px src="http://localhost:8081/${data.result[i].name}" alt="Card image cap">
+                      <div class="card-body">
+                          <h4 class="card-title">${data.result[i].title}</h4>
+                          <p class="card-text">${data.result[i].category}</p>
+                          <div class="row">
+                              <div class="col">
+                                  <p class="btn btn-danger btn-block">$${data.result[i].price}</p>
+                              </div>
+                              <div class="col">
+                                  <a href = "http://localhost:3001/viewlisting.html?listingid=${data.result[i].id}" class="btn btn-success btn-block">View</a>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+              </div>`;
+                      }
+                      $('#listings').html(postsHtml);
+
+                  } else {
+                      window.alert("Error in retrieving")
+                  }
+              }, error(xhr, textStatus, err) {
+                  console.log(err)
+                  window.alert("Error in retrieving")
+              }
+          });
+        // }
 
         $('#logout').click(function () {
             $.ajax({
