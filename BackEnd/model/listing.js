@@ -124,22 +124,42 @@ var listingDB = {
       }
     });
   },
-  deleteListing: function (id, callback) {
+  deleteListing: function (userId, id, callback) {
     var conn = db.getConnection();
     conn.connect(function (err) {
       if (err) {
         console.log(err);
         return callback(err, null);
       } else {
-        var sql = "delete from listings where id = ?";
-        conn.query(sql, [id], function (err, result) {
-          conn.end();
+        var sql1 = "select * from listings where id = ?";
+        conn.query(sql1, [id], function (err, result) {
           if (err) {
             console.log(err);
             return callback(err, null);
-          } else {
-            return callback(null, result);
           }
+          if (result.length == 0) {
+            var err3 = new Error("Listing does not exist");
+            err3.statusCode = 404;
+            return callback(err3, null);
+          }
+          if (result[0]?.fk_poster_id != userId) {
+            var err2 = new Error(
+              "You are not authorized to delete this listing"
+            );
+            err2.statusCode = 401;
+            return callback(err2, null);
+          }
+
+          var sql2 = "delete from listings where id = ?";
+          conn.query(sql2, [id], function (err, result) {
+            conn.end();
+            if (err) {
+              console.log(err);
+              return callback(err, null);
+            } else {
+              return callback(null, result);
+            }
+          });
         });
       }
     });

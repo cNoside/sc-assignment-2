@@ -267,14 +267,15 @@ app.put("/listing/update/", function (req, res) {
   );
 });
 
-app.delete("/listing/delete/", function (req, res) {
+app.delete("/listing/delete/", verifyToken, function (req, res) {
   //View a listing
+  var userId = req.id;
   var id = req.body.id;
 
-  listing.deleteListing(id, function (err, result) {
+  listing.deleteListing(userId, id, function (err, result) {
     if (err) {
-      res.status(500);
-      res.json({ success: false });
+      res.status(err.statusCode);
+      res.json({ success: false, message: err.message });
     } else {
       res.status(200);
       res.setHeader("Content-Type", "application/json");
