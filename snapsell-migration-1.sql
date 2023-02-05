@@ -1,3 +1,4 @@
+USE snapsell;
 ALTER TABLE `images`
 ADD `fk_user_id` INT;
 ALTER TABLE `images`
