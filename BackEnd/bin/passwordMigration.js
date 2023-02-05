@@ -1,3 +1,4 @@
+require("dotenv").config();
 var db = require("../model/databaseConfig");
 var argon2 = require("argon2");
 
