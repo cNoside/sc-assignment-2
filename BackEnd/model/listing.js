@@ -83,11 +83,14 @@ var listingDB = {
         console.log(err);
         return callback(err, null);
       } else {
-        var sql =
-          "select l.title,l.category,l.price,l.id,i.name from listings l,images i where l.id = i.fk_product_id and l.fk_poster_id != ? and l.title like '%" +
-          query +
-          "%'";
-        conn.query(sql, [userid], function (err, result) {
+        var sql = (
+          `select l.title,l.category,l.price,l.id,i.name
+           from listings l,images i
+           where l.id = i.fk_product_id
+           and l.fk_poster_id != ?
+           and l.title like '%?%'
+          `);
+        conn.query(sql, [userid, query], function (err, result) {
           conn.end();
           if (err) {
             console.log(err);

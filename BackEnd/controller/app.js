@@ -18,6 +18,7 @@ var config = require("../config.js");
 var cors = require("cors"); //Just use(security feature)
 var cookieParser = require("cookie-parser");
 var jwt = require("jsonwebtoken");
+var validateEditListing = require("../validation/edit-listing.js");
 
 var urlencodedParser = bodyParser.urlencoded({ extended: false });
 
@@ -241,7 +242,7 @@ app.get("/search/:query", verifyToken, function (req, res) {
   });
 });
 
-app.put("/listing/update/", function (req, res) {
+app.put("/listing/update/", validateEditListing, function (req, res) {
   //View a listing
   var title = req.body.title;
   var category = req.body.category;
@@ -433,6 +434,12 @@ app.post(
   verifyToken,
   memory.single("myfile"),
   async function (req, res, next) {
+    if (!req.file) {
+      res.status(400);
+      res.json({ success: false, message: "No file uploaded" });
+      return;
+    }
+
     const filenameWhitelist = /[^a-zA-Z0-9\s-_.]/g; // allowed characters
     const extensionWhitelist = /jpeg|jpg|png|gif/; // allowed extensions
     const limits = { fileSize: 5 * 1024 * 1024 }; // 5mb limit

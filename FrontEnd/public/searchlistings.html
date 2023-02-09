@@ -17,6 +17,7 @@
         var urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has("search")) {
             var search = urlParams.get("search");
+            search = search.replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
 
         if (urlParams.has("page")) {
@@ -113,7 +114,7 @@
                 }
             }, error(xhr, textStatus, err) {
                 console.log(err)
-                window.alert("Error in retrieving")
+                // window.alert("Error in retrieving")
             }
 
         });
@@ -139,6 +140,8 @@
 
         $('#searchbutton').click(function () {
             var search = $('#search').val()
+            // prevent xss
+            search = encodeURIComponent(search.replace(/</g, "&lt;").replace(/>/g, "&gt;"))
             window.location.assign("http://localhost:3001/searchlistings.html?search=" + `${search}`)
         })
     });
